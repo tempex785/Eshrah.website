@@ -50,21 +50,21 @@ export default async function handler(req: any, res: any) {
       if (itemInfo.deadline) {
         const deadlineDate = new Date(itemInfo.deadline);
         if (now > deadlineDate) {
-          return res.status(403).json({ success: false, message: 'عذراً، لقد انتهى موعد التسليم.' });
+          return res.status(400).json({ success: false, message: 'عذراً، لقد انتهى موعد التسليم.' });
         }
       }
     } else {
       if (itemInfo.start_time) {
         const startDate = new Date(itemInfo.start_time);
         if (now < startDate) {
-          return res.status(403).json({ success: false, message: 'عذراً، لم يبدأ هذا الامتحان بعد.' });
+          return res.status(400).json({ success: false, message: 'عذراً، لم يبدأ هذا الامتحان بعد.' });
         }
       }
       
       if (itemInfo.end_time) {
         const endDate = new Date(itemInfo.end_time);
         if (now > endDate) {
-          return res.status(403).json({ success: false, message: 'عذراً، لقد انتهى وقت هذا الامتحان.' });
+          return res.status(400).json({ success: false, message: 'عذراً، لقد انتهى وقت هذا الامتحان.' });
         }
       }
     }

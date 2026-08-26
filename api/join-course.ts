@@ -25,24 +25,83 @@ export default async function handler(req: any, res: any) {
       return res.status(401).json({ success: false, message: 'Invalid token' });
     }
     
-    // Execute atomic transaction via PostgreSQL RPC (uses auth.uid() internally now)
-    const userClient = createClient(supabaseUrl, process.env.VITE_SUPABASE_ANON_KEY || '', {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data: rpcData, error: rpcError } = await userClient.rpc('join_course_atomic', {
-      p_course_id: courseId
-    });
+    // 1. Get Course Info
+    const { data: courseInfo, error: courseError } = await supabaseAdmin
+      .from('courses')
+      .select('price, title')
+      .eq('id', courseId)
+      .single();
 
-    if (rpcError) {
-      console.error('RPC Error:', rpcError);
-      return res.status(500).json({ success: false, message: 'حدث خطأ أثناء الاشتراك.' });
+    if (courseError || !courseInfo) {
+      return res.status(400).json({ success: false, message: 'الكورس غير موجود' });
     }
 
-    if (!rpcData.success) {
-       return res.status(400).json({ success: false, message: rpcData.message });
+    let price = parseFloat(courseInfo.price || '0');
+    if (isNaN(price)) price = 0;
+
+    // 2. Check if already subscribed
+    const { data: existingSub } = await supabaseAdmin
+      .from('student_subscriptions')
+      .select('id')
+      .eq('student_id', user.id)
+      .eq('course_id', courseId)
+      .single();
+
+    if (existingSub) {
+      return res.status(400).json({ success: false, message: 'أنت مشترك بالفعل في هذا الكورس' });
     }
 
-    return res.json({ success: true, message: rpcData.message, balance: rpcData.balance });
+    // 3. Get Student Balance
+    const { data: studentInfo, error: studentError } = await supabaseAdmin
+      .from('students')
+      .select('wallet_balance')
+      .eq('id', user.id)
+      .single();
+
+    if (studentError || !studentInfo) {
+      return res.status(400).json({ success: false, message: 'تعذر جلب بيانات الطالب' });
+    }
+
+    const currentBalance = parseFloat(studentInfo.wallet_balance || '0');
+
+    if (currentBalance < price) {
+      return res.status(400).json({ success: false, message: 'رصيدك غير كافٍ للاشتراك في هذا الكورس' });
+    }
+
+    const newBalance = currentBalance - price;
+
+    // 4. Update Student Balance
+    const { error: updateError } = await supabaseAdmin
+      .from('students')
+      .update({ wallet_balance: newBalance })
+      .eq('id', user.id);
+
+    if (updateError) {
+      return res.status(500).json({ success: false, message: 'حدث خطأ أثناء خصم الرصيد' });
+    }
+
+    // 5. Insert Subscription
+    await supabaseAdmin
+      .from('student_subscriptions')
+      .insert({
+        student_id: user.id,
+        course_id: courseId,
+        status: 'active'
+      });
+
+    // 6. Log Transaction
+    if (price > 0) {
+      await supabaseAdmin
+        .from('transactions_log')
+        .insert({
+          student_id: user.id,
+          amount: price,
+          type: 'purchase',
+          description: `اشتراك في كورس: ${courseInfo.title}`
+        });
+    }
+
+    return res.json({ success: true, message: 'تم الاشتراك بنجاح!', balance: newBalance });
     
   } catch (error: any) {
     console.error('Subscription API Error:', error);

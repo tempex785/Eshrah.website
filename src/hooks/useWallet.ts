@@ -88,33 +88,33 @@ export function useWallet() {
 
   const subscribeToCourse = async (courseId: string) => {
     if (!userId) return { success: false, message: 'يجب تسجيل الدخول أولاً' };
-
     if (subscriptions.includes(courseId)) {
       return { success: true, message: 'أنت مشترك بالفعل' };
     }
-
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return { success: false, message: 'يجب تسجيل الدخول' };
 
-      const { data, error } = await supabase.rpc('join_course_atomic', {
-        p_course_id: courseId,
+      const res = await fetch('/api/join-course', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ courseId })
       });
 
-      if (error) {
-        console.error('join_course_atomic error:', error);
-        return { success: false, message: 'حدث خطأ، برجاء المحاولة لاحقًا' };
-      }
+      const data = await res.json();
 
       if (data?.success) {
         await fetchWallet();
         setSubscriptions([...subscriptions, courseId]);
         window.dispatchEvent(new CustomEvent('wallet_updated'));
       }
-
-      return data;
+      return data || { success: false, message: 'حدث خطأ غير متوقع' };
     } catch (err) {
+      console.error('API join-course error:', err);
       return { success: false, message: 'حدث خطأ غير متوقع بالخادم' };
     }
   };

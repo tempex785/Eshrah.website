@@ -36,17 +36,17 @@ export default async function handler(req: any, res: any) {
     if (isHomework && itemData.deadline) {
       const deadlineDate = new Date(itemData.deadline);
       if (now < deadlineDate) {
-        return res.status(403).json({ success: false, message: 'لا يمكن عرض الإجابات الصحيحة قبل انتهاء موعد التسليم.' });
+        return res.status(400).json({ success: false, message: 'لا يمكن عرض الإجابات الصحيحة قبل انتهاء موعد التسليم.' });
       }
     } else if (!isHomework) {
       if (itemData.end_time) {
         const endDate = new Date(itemData.end_time);
         if (now < endDate) {
-          return res.status(403).json({ success: false, message: 'لا يمكن عرض الإجابات الصحيحة قبل انتهاء موعد الامتحان.' });
+          return res.status(400).json({ success: false, message: 'لا يمكن عرض الإجابات الصحيحة قبل انتهاء موعد الامتحان.' });
         }
       } else if (itemData.is_active) {
          // Fallback if no end_time is set
-         return res.status(403).json({ success: false, message: 'لا يمكن عرض الإجابات الصحيحة لأن الامتحان لا يزال متاحاً.' });
+         return res.status(400).json({ success: false, message: 'لا يمكن عرض الإجابات الصحيحة لأن الامتحان لا يزال متاحاً.' });
       }
     }
 
@@ -60,7 +60,7 @@ export default async function handler(req: any, res: any) {
       .limit(1);
       
     if (!attempts || attempts.length === 0) {
-      return res.status(403).json({ success: false, message: 'You must submit the exam first.' });
+      return res.status(400).json({ success: false, message: 'You must submit the exam first.' });
     }
     
     // Get the questions for this exam
