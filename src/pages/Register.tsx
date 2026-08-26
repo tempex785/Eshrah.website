@@ -1,12 +1,66 @@
-import { User, Phone, Lock, Eye, EyeOff, MapPin, Mail } from 'lucide-react';
+import { User, Phone, ChevronDown, Lock, Eye, EyeOff, MapPin, Mail } from 'lucide-react';
 import AuthLayout from '../components/layout/AuthLayout';
 import { Page } from '../App';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import medicalAuthUrl from '../assets/images/medical_auth_vertical_text_1781667535732.jpg';
 import { useLanguage } from '../context/LanguageContext';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { governorates, universities } from '../data/egypt';
+
+
+const CustomSelect = ({ name, value, onChange, options, placeholder, required }: any) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedLabel = options.find((o: any) => o.value === value)?.label || placeholder;
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full bg-transparent border-b border-gray-300 dark:border-slate-700 py-3 text-slate-900 dark:text-white focus:border-burgundy-500 dark:focus:border-burgundy-400 outline-none transition-colors cursor-pointer flex justify-between items-center"
+      >
+        <span className={value ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-slate-500"}>
+          {selectedLabel}
+        </span>
+        <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </div>
+      {isOpen && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 overflow-hidden">
+          {options.map((opt: any) => (
+            <div
+              key={opt.value}
+              onClick={() => {
+                onChange({ target: { name, value: opt.value } });
+                setIsOpen(false);
+              }}
+              className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-slate-800 dark:text-slate-200"
+            >
+              {opt.label}
+            </div>
+          ))}
+        </div>
+      )}
+      <select name={name} value={value} onChange={onChange} required={required} className="hidden" tabIndex={-1}>
+        <option value="" disabled>{placeholder}</option>
+        {options.map((opt: any) => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+};
 
 export default function Register({
   onNavigate,
@@ -248,19 +302,19 @@ export default function Register({
         </div>
 
         <div className="space-y-6">
-          <select
+          
+          <CustomSelect
             name="gender"
             value={formData.gender}
             onChange={handleChange}
-            required
-            className="w-full bg-transparent border-b border-gray-300 dark:border-slate-700 py-3 text-slate-900 dark:text-white focus:border-burgundy-500 dark:focus:border-burgundy-400 outline-none transition-colors cursor-pointer appearance-none [&>option]:bg-white dark:[&>option]:bg-slate-800"
-          >
-            <option value="" disabled>
-              {t('gender')}
-            </option>
-            <option value="m">{t('male')}</option>
-            <option value="f">{t('female')}</option>
-          </select>
+            required={true}
+            placeholder={t('gender')}
+            options={[
+              { value: 'm', label: t('male') },
+              { value: 'f', label: t('female') }
+            ]}
+          />
+
 
           <div className="relative group">
             <input
@@ -338,20 +392,20 @@ export default function Register({
             />
           </div>
 
-          <select
+          
+          <CustomSelect
             name="howDidYouKnow"
             value={formData.howDidYouKnow}
             onChange={handleChange}
-            required
-            className="w-full bg-transparent border-b border-gray-300 dark:border-slate-700 py-3 text-slate-900 dark:text-white focus:border-burgundy-500 dark:focus:border-burgundy-400 outline-none transition-colors cursor-pointer appearance-none [&>option]:bg-white dark:[&>option]:bg-slate-800"
-          >
-            <option value="" disabled>
-              {t('howDidYouKnowGhaith')}
-            </option>
-            <option value="fb">{t('facebook')}</option>
-            <option value="friend">{t('friends')}</option>
-            <option value="other">{t('other')}</option>
-          </select>
+            required={true}
+            placeholder={t('howDidYouKnowGhaith')}
+            options={[
+              { value: 'fb', label: t('facebook') },
+              { value: 'friend', label: t('friends') },
+              { value: 'other', label: t('other') }
+            ]}
+          />
+
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -51,14 +51,35 @@ export default function Wallet({ onNavigate }: WalletProps) {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const { data, error } = await supabase
+      const { data: txData, error: txError } = await supabase
         .from('transactions_log')
         .select('*')
         .eq('student_id', session.user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setTransactions(data || []);
+      if (txError) throw txError;
+
+      const { data: reqData, error: reqError } = await supabase
+        .from('charge_requests')
+        .select('*')
+        .eq('student_id', session.user.id)
+        .order('created_at', { ascending: false });
+
+      if (reqError) throw reqError;
+
+      const combined = [
+        ...(txData || []).map(t => ({ ...t, status: 'completed' })),
+        ...(reqData || [])
+          .map(r => ({
+            amount: r.amount,
+            type: 'manual_request',
+            status: r.status,
+            description: `طلب شحن محفظة يدوي - ${r.sender_phone}`,
+            created_at: r.created_at
+          }))
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setTransactions(combined);
     } catch (err) {
       console.error('Error fetching transactions:', err);
     } finally {
@@ -122,7 +143,7 @@ export default function Wallet({ onNavigate }: WalletProps) {
       setManualMessage({ text: 'تم إرسال طلب الشحن بنجاح. سيتم مراجعة الطلب وإضافة الرصيد قريباً.', isError: false });
       setManualPhone('');
       setManualAmount('');
-      fetchChargeHistory();
+      fetchTransactions();
     } catch (err: any) {
       setManualMessage({ text: err.message || 'حدث خطأ أثناء إرسال الطلب', isError: true });
     } finally {
@@ -368,27 +389,37 @@ export default function Wallet({ onNavigate }: WalletProps) {
                     {transactions.map((tx, i) => {
                       const isCharge = tx.type === 'charge' || tx.type === 'refund';
                       const isPurchase = tx.type === 'purchase';
+                      const isManualRequest = tx.type === 'manual_request';
+                      const isPending = tx.status === 'pending';
+                      const isRejected = tx.status === 'rejected';
+
                       return (
-                      <div key={i} className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between transition-colors hover:border-slate-300 dark:hover:border-slate-600">
+                      <div key={i} className={`bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between transition-colors hover:border-slate-300 dark:hover:border-slate-600 ${isPending ? 'opacity-80' : ''}`}>
                         <div className="flex items-center gap-4">
                           <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
-                            isCharge ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                            isPurchase ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
+                            isCharge || (isManualRequest && !isRejected) ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                            isPurchase || isRejected ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
                             'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                           }`}>
                             <WalletIcon className="w-6 h-6" />
                           </div>
                           <div>
                             <div className="flex items-center gap-2 mb-1">
-                              <span className={`font-bold text-lg ${isCharge ? 'text-emerald-600 dark:text-emerald-400' : isPurchase ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-white'}`}>
-                                {isCharge ? '+' : isPurchase ? '-' : ''}{tx.amount} ج.م
+                              <span className={`font-bold text-lg ${isCharge || (isManualRequest && !isRejected) ? 'text-emerald-600 dark:text-emerald-400' : isPurchase || isRejected ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-white'}`}>
+                                {isCharge || isManualRequest ? '+' : isPurchase ? '-' : ''}{tx.amount} ج.م
                               </span>
                               <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                                 isCharge ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
                                 isPurchase ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                isManualRequest && isPending ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                isManualRequest && isRejected ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                isManualRequest ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
                                 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                               }`}>
-                                {tx.type === 'charge' ? 'إيداع رصيد' : tx.type === 'purchase' ? 'اشتراك / خصم' : tx.type === 'refund' ? 'استرجاع' : 'أخرى'}
+                                {tx.type === 'charge' ? 'إيداع رصيد' : 
+                                 tx.type === 'purchase' ? 'اشتراك / خصم' : 
+                                 tx.type === 'refund' ? 'استرجاع' : 
+                                 tx.type === 'manual_request' ? (isPending ? 'قيد المراجعة' : isRejected ? 'مرفوض' : 'مقبول (تم الشحن)') : 'أخرى'}
                               </span>
                             </div>
                             <div className="text-sm text-slate-500 flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 mt-1">

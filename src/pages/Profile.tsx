@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import React, { useState, useEffect } from 'react';
 import fpPromise from '@fingerprintjs/fingerprintjs';
 import { Award, CheckCircle2, XCircle, LayoutList, 
@@ -1007,7 +1008,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
                                     <button
                                       onClick={() => {
                                         navigator.clipboard.writeText(req.charge_code);
-                                        alert('تم نسخ كود الشحن!');
+                                        toast.success('تم نسخ كود الشحن!');
                                       }}
                                       className="p-1.5 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-md transition-colors"
                                       title="نسخ الكود"

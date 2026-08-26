@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import ExamSystem from '../components/exam/ExamSystem';
 import React, { useState, useEffect } from 'react';
 import { CheckCircle2, Clock, Flag, AlertCircle, Check, ArrowRight, ArrowLeft, 
@@ -84,7 +85,7 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
       }, 1000);
     } else if (pomodoroTime === 0) {
       setIsPomodoroRunning(false);
-      alert('انتهى وقت التركيز! خذ استراحة قصيرة.');
+      toast('انتهى وقت التركيز! ☕ خذ استراحة قصيرة.', { icon: '👏' });
     }
     return () => clearInterval(interval);
   }, [isPomodoroRunning, pomodoroTime]);
@@ -155,11 +156,11 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
         dateStyle: 'medium',
         timeStyle: 'short',
       });
-      alert(`لم يبدأ الامتحان بعد. موعد البدء: ${startStr}`);
+      toast.error(`لم يبدأ الامتحان بعد. موعد البدء: ${startStr}`);
       return;
     }
     if (exam.end_time && new Date() > new Date(exam.end_time)) {
-      alert('انتهى وقت هذا الامتحان ولم يعد بإمكانك دخوله.');
+      toast.error('انتهى وقت هذا الامتحان ولم يعد بإمكانك دخوله.');
       return;
     }
     window.scrollTo({ top: 300, behavior: 'smooth' });
@@ -1107,7 +1108,7 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
                                         return;
                                       }
                                       if (isLocked) {
-                                        alert('لقد استنفذت عدد المحاولات المسموح بها للاختبار.');
+                                        toast.error('لقد استنفذت عدد المحاولات المسموح بها للاختبار.');
                                         return;
                                       }
                                       
@@ -1117,21 +1118,21 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
                                         if (examInfo.start_time) {
                                           const startDate = new Date(examInfo.start_time);
                                           if (now < startDate) {
-                                            alert(`لم يبدأ الامتحان بعد. موعد البدء: ${startDate.toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}`);
+                                            toast.error(`لم يبدأ الامتحان بعد. موعد البدء: ${startDate.toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}`);
                                             return;
                                           }
                                         }
                                         if (examInfo.end_time) {
                                           const endDate = new Date(examInfo.end_time);
                                           if (now > endDate) {
-                                            alert('انتهى وقت هذا الامتحان');
+                                            toast.error('انتهى وقت هذا الامتحان');
                                             return;
                                           }
                                         }
                                         if (examInfo.deadline) {
                                           const deadlineDate = new Date(examInfo.deadline);
                                           if (now > deadlineDate) {
-                                            alert('انتهى موعد تسليم هذا الواجب');
+                                            toast.error('انتهى موعد تسليم هذا الواجب');
                                             return;
                                           }
                                         }

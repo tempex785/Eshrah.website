@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { FileText, CheckCircle2, Clock, AlertCircle, Flag, ArrowRight, ArrowLeft, Loader2, CheckCircle, XCircle } from 'lucide-react';
@@ -87,7 +88,7 @@ export default function ExamSystem({ exam, onClose, onComplete }: ExamSystemProp
         data = JSON.parse(text);
       } catch (e) {
         console.error('Non-JSON response from server:', text);
-        alert('يبدو أن الخادم لم يتم تحديثه بالكامل بعد (تحديث الصفحة قد يحل المشكلة).');
+        toast.error('يبدو أن الخادم لم يتم تحديثه بالكامل بعد (تحديث الصفحة قد يحل المشكلة).');
         setIsReviewLoading(false);
         return;
       }
@@ -97,11 +98,11 @@ export default function ExamSystem({ exam, onClose, onComplete }: ExamSystemProp
         setIsReviewMode(true);
         setCurrentIdx(0);
       } else {
-        alert(data.message || 'رسالة الخطأ: ' + JSON.stringify(data));
+        toast.error(data.message || 'رسالة الخطأ: ' + JSON.stringify(data));
       }
     } catch (err) {
       console.error(err);
-      alert('عذراً، حدث خطأ أثناء الاتصال بالخادم: ' + String(err.message || err) + ' | ' + window.location.pathname);
+      toast.error('عذراً، حدث خطأ أثناء الاتصال بالخادم: ' + String(err.message || err) + ' | ' + window.location.pathname);
     }
     setIsReviewLoading(false);
   };
@@ -116,7 +117,7 @@ export default function ExamSystem({ exam, onClose, onComplete }: ExamSystemProp
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        alert('يجب تسجيل الدخول');
+        toast.error('يجب تسجيل الدخول');
         setIsSubmitting(false);
         return;
       }
@@ -140,7 +141,7 @@ export default function ExamSystem({ exam, onClose, onComplete }: ExamSystemProp
         data = JSON.parse(text);
       } catch (e) {
         console.error('Non-JSON response from server for submit-exam:', text);
-        alert('يبدو أن الخادم قيد التحديث (يرجى تحديث الصفحة والمحاولة).');
+        toast.error('يبدو أن الخادم قيد التحديث (يرجى تحديث الصفحة والمحاولة).');
         setIsSubmitting(false);
         return;
       }
@@ -150,11 +151,11 @@ export default function ExamSystem({ exam, onClose, onComplete }: ExamSystemProp
         setExamFinished(true);
         onComplete(data.score, exam.total_marks || 100);
       } else {
-        alert(data.message || 'حدث خطأ أثناء تسليم الامتحان');
+        toast.error(data.message || 'حدث خطأ أثناء تسليم الامتحان');
       }
     } catch (err) {
       console.error(err);
-      alert('حدث خطأ غير متوقع أثناء تسليم الامتحان');
+      toast.error('حدث خطأ غير متوقع أثناء تسليم الامتحان');
     }
     
     setIsSubmitting(false);
