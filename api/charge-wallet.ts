@@ -25,9 +25,11 @@ export default async function handler(req: any, res: any) {
       return res.status(401).json({ success: false, message: 'Invalid token' });
     }
     
-    // Execute atomic transaction via PostgreSQL RPC
-    const { data, error } = await supabaseAdmin.rpc('charge_wallet_atomic', {
-      p_student_id: user.id,
+    // Execute atomic transaction via PostgreSQL RPC (uses auth.uid() internally)
+    const userClient = createClient(supabaseUrl, process.env.VITE_SUPABASE_ANON_KEY || '', {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data, error } = await userClient.rpc('redeem_charge_card', {
       p_code: code
     });
       

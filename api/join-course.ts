@@ -25,22 +25,24 @@ export default async function handler(req: any, res: any) {
       return res.status(401).json({ success: false, message: 'Invalid token' });
     }
     
-    // Execute atomic transaction via PostgreSQL RPC
-    const { data, error } = await supabaseAdmin.rpc('join_course_atomic', {
-      p_student_id: user.id,
+    // Execute atomic transaction via PostgreSQL RPC (uses auth.uid() internally now)
+    const userClient = createClient(supabaseUrl, process.env.VITE_SUPABASE_ANON_KEY || '', {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: rpcData, error: rpcError } = await userClient.rpc('join_course_atomic', {
       p_course_id: courseId
     });
-      
-    if (error) {
-      console.error('RPC Error:', error);
+
+    if (rpcError) {
+      console.error('RPC Error:', rpcError);
       return res.status(500).json({ success: false, message: 'حدث خطأ أثناء الاشتراك.' });
     }
-    
-    if (!data.success) {
-       return res.status(400).json({ success: false, message: data.message });
+
+    if (!rpcData.success) {
+       return res.status(400).json({ success: false, message: rpcData.message });
     }
-    
-    return res.json({ success: true, message: data.message, balance: data.balance });
+
+    return res.json({ success: true, message: rpcData.message, balance: rpcData.balance });
     
   } catch (error: any) {
     console.error('Subscription API Error:', error);

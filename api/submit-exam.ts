@@ -108,6 +108,7 @@ export default async function handler(req: any, res: any) {
     const attemptData: any = {
       user_id: user.id,
       score: correctCount,
+      status: 'completed',
       completed_at: new Date().toISOString()
     };
     
