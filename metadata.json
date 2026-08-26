@@ -1,0 +1,8 @@
+{
+  "name": "Eshrah website",
+  "description": "أسهل منصة لشرح وتبسيط المناهج الطبية",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

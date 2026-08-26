@@ -1,0 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rakkas&display=swap');
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Cairo', ui-sans-serif, system-ui, sans-serif;
+  --font-hero: 'Rakkas', serif;
+  --color-burgundy-50: #fbf3f5;
+  --color-burgundy-100: #f6e4ea;
+  --color-burgundy-200: #edccd4;
+  --color-burgundy-300: #dfa8b8;
+  --color-burgundy-400: #cd7a93;
+  --color-burgundy-500: #900b39;
+  --color-burgundy-600: #7b0931;
+  --color-burgundy-700: #640828;
+  --color-burgundy-800: #510721;
+  --color-burgundy-900: #44071d;
+  --color-burgundy-950: #26030f;
+}
+
+@keyframes marquee-rtl {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee-rtl 35s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+body {
+  font-family: 'Cairo', sans-serif;
+  direction: rtl;
+  @apply bg-gray-50 text-slate-900 dark:bg-[#0f172a] dark:text-white transition-colors duration-500;
+}
+
+:root {
+  --plyr-color-main: #900b39;
+  --plyr-font-family: 'Cairo', sans-serif;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

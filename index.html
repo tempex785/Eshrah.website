@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>منصة إشرحــ طب - منصة تعليمية لطلاب الطب</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="منصة إشرحــ طب هي المنصة الرائدة لتعليم طلاب الطب باللغة العربية. شروحات مبسطة، امتحانات تفاعلية، وكورسات متخصصة." />
+    <meta name="keywords" content="طب, تعليم طبي, كورسات طبية, امتحانات طب, كلية الطب, شرح طب" />
+    <meta name="author" content="إشرحــ طب" />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://elmorsy.online/" />
+    <meta property="og:title" content="منصة إشرحــ طب - منصة تعليمية لطلاب الطب" />
+    <meta property="og:description" content="منصة إشرحــ طب هي المنصة الرائدة لتعليم طلاب الطب باللغة العربية. شروحات مبسطة، امتحانات تفاعلية، وكورسات متخصصة." />
+    <meta property="og:image" content="/assets/medical_auth_vertical_text.jpg" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://elmorsy.online/" />
+    <meta property="twitter:title" content="منصة إشرحــ طب - منصة تعليمية لطلاب الطب" />
+    <meta property="twitter:description" content="منصة إشرحــ طب هي المنصة الرائدة لتعليم طلاب الطب باللغة العربية. شروحات مبسطة، امتحانات تفاعلية، وكورسات متخصصة." />
+    <meta property="twitter:image" content="/assets/medical_auth_vertical_text.jpg" />
+
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#9f1239" />
+    <link rel="icon" type="image/jpeg" href="/eshrah_teb_logo_bubble_arabic_1784674154571.jpg" />
+    <link rel="apple-touch-icon" href="/eshrah_teb_logo_bubble_arabic_1784674154571.jpg" />
+    
+    <!-- Structured Data for Google Search -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "إشرحــ طب",
+      "alternateName": "منصة إشرحــ طب",
+      "url": "https://elmorsy.online/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://elmorsy.online/?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "إشرحــ طب",
+      "url": "https://elmorsy.online/",
+      "logo": "https://elmorsy.online/eshrah_logo.jpg",
+      "sameAs": [
+        "https://www.facebook.com/share/1BAP6d3N6V/"
+      ]
+    }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(error => {
+            console.log('ServiceWorker registration failed: ', error);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>
