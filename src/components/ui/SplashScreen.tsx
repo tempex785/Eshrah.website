@@ -5,10 +5,11 @@ import React, { useRef, useEffect } from 'react';
 // import splashVideo from '../../assets/splash.mp4'; 
 
 interface SplashScreenProps {
+  onFinish?: () => void;
   isFadingOut: boolean;
 }
 
-export default function SplashScreen({ isFadingOut }: SplashScreenProps) {
+export default function SplashScreen({ isFadingOut, onFinish }: SplashScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -30,10 +31,14 @@ export default function SplashScreen({ isFadingOut }: SplashScreenProps) {
           ref={videoRef}
           className="w-full h-full object-cover"
           autoPlay
+          onEnded={() => {
+            setTimeout(() => {
+              if (onFinish) onFinish();
+            }, 1000);
+          }}
           muted
           playsInline
-          loop
-          // src={splashVideo} // استخدم هذا السطر عند استيراد فيديو محلي
+                    // src={splashVideo} // استخدم هذا السطر عند استيراد فيديو محلي
           src="/splash.mp4" // الفيديو الخاص بك
         />
         

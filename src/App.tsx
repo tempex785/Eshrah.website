@@ -142,17 +142,12 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  useEffect(() => {
-    if (!showSplash) return;
-    const splashTimer = setTimeout(() => {
-      setFadeSplash(true);
-      setTimeout(() => {
-        setShowSplash(false);
-      }, 500); // Wait for fade out animation
-    }, 4000); // 4 seconds display
-
-    return () => clearTimeout(splashTimer);
-  }, [showSplash]);
+  const handleSplashFinish = () => {
+    setFadeSplash(true);
+    setTimeout(() => {
+      setShowSplash(false);
+    }, 700);
+  };
 
   useEffect(() => {
     if (isDark) {
@@ -193,7 +188,7 @@ export default function App() {
 
   return (
     <>
-      {showSplash && <SplashScreen isFadingOut={fadeSplash} />}
+      {showSplash && <SplashScreen isFadingOut={fadeSplash} onFinish={handleSplashFinish} />}
       {!isAppLoading && (
         <div
           className={`min-h-screen flex flex-col font-sans overflow-x-hidden transition-colors duration-500`}
