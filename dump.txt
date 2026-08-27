@@ -1,0 +1,216 @@
+  useEffect(() => {
+    async function fetchContent() {
+      if (
+        course?.id &&
+        import.meta.env.VITE_SUPABASE_URL &&
+        !import.meta.env.VITE_SUPABASE_URL.includes('placeholder')
+      ) {
+        try {
+          // Fetch user session first to get attempts
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+          if (session?.user?.id) {
+            const { data: attemptsData, error: attemptsError } = await supabase
+              .from('exam_attempts')
+              .select('*')
+              .eq('user_id', session.user.id);
+
+            if (!attemptsError && attemptsData) {
+              const attemptsMap: Record<string, number> = {};
+              attemptsData.forEach((attempt) => {
+                const id = attempt.exam_id || attempt.assignment_id;
+                if (id) {
+                  attemptsMap[id] = (attemptsMap[id] || 0) + 1;
+                }
+              });
+              setUserAttempts(attemptsMap);
+            }
+
+            const { data: viewsData, error: viewsError } = await supabase
+              .from('video_views')
+              .select('video_id')
+              .eq('student_id', session.user.id);
+            if (!viewsError && viewsData) {
+              setViewedVideoUrls(new Set(viewsData.map((v) => v.video_id)));
+            }
+          }
+
+          const { data: subsData, error: subsError } = await supabase
+            .from('course_subjects')
+            .select('*')
+            .eq('course_id', course.id);
+
+          if (!subsError && subsData && subsData.length > 0) {
+            // Get IDs
+            const subjectIds = subsData.map((s: any) => s.id);
+
+            // Try fetching secure modules via RPC first (strips URLs if not subscribed)
+            let modsData = null;
+            let modsError = null;
+            try {
+              const { data: rpcData, error: rpcError } = await supabase.rpc(
+                'get_secure_course_modules',
+                {
+                  p_course_id: course.id,
+                }
+              );
+              if (!rpcError && rpcData) {
+                modsData = rpcData;
+              } else {
+                // Fallback to direct table if RPC doesn't exist
+                const res = await supabase
+                  .from('course_modules')
+                  .select('*')
+                  .in('subject_id', subjectIds);
+                modsData = res.data;
+                modsError = res.error;
+
+                // Remove the client-side stripping here to avoid race condition.
+                // We'll handle URL access based on the 'isSubscribed' state during render instead.
+              }
+            } catch (e) {
+              // Fallback
+              const res = await supabase
+                .from('course_modules')
+                .select('*')
+                .in('subject_id', subjectIds);
+              modsData = res.data;
+              modsError = res.error;
+            }
+
+            // Fetch exams, assignments, and schedules
+            const { data: examsData } = await supabase
+              .from('exams')
+              .select('*')
+              .eq('course_id', course.id);
+
+            const { data: assignmentsData } = await supabase
+              .from('assignments')
+              .select('*')
+              .eq('course_id', course.id);
+
+            const { data: schedulesData } = await supabase
+              .from('schedules')
+              .select('*')
+              .eq('course_id', course.id)
+              .eq('is_active', true);
+
+            const { data: weeklyData } = await supabase
+              .from('weekly_schedules')
+              .select('*')
+              .eq('course_id', course.id)
+              .order('day_of_week', { ascending: true });
+
+            if (weeklyData) {
+              setWeeklySchedules(weeklyData);
+            } else {
+              setWeeklySchedules([]);
+            }
+
+            if (!modsError && modsData) {
+              const mapped = subsData.map((s: any) => {
+                // Regular modules
+                const subjectModules = modsData
+                  .filter((m: any) => m.subject_id === s.id)
+                  .map((m: any) => {
+                    let parsedItems = m.items;
+                    if (typeof parsedItems === 'string') {
+                      try {
+                        parsedItems = JSON.parse(parsedItems);
+                      } catch (e) {}
+                    }
+                    const moduleItems: any[] = Array.isArray(parsedItems)
+                      ? parsedItems.map((i: any) => ({
+                          title: i.title,
+                          url: i.url,
+                          icon:
+                            i.icon === 'MonitorPlay' ? (
+                              <MonitorPlay className="w-5 h-5 text-burgundy-500" />
+                            ) : i.icon === 'FileText' ? (
+                              <FileText className="w-5 h-5 text-red-500" />
+                            ) : (
+                              <ClipboardList className="w-5 h-5 text-amber-500" />
+                            ),
+                          isExam: false,
+                          isVideo: i.icon === 'MonitorPlay',
+                        }))
+                      : [];
+
+                    // Find exams for this module
+                    const moduleExams = examsData?.filter((e: any) => e.module_id === m.id) || [];
+                    moduleExams.forEach((exam: any) => {
+                      moduleItems.push({
+                        title: `امتحان: ${exam.title}`,
+                        url: '#',
+                        icon: <ClipboardList className="w-5 h-5 text-amber-500" />,
+                        isExam: true,
+                        examData: { ...exam, type: 'exam' },
+                      });
+                    });
+
+                    // Find assignments for this module
+                    const moduleAssignments =
+                      assignmentsData?.filter((a: any) => a.module_id === m.id) || [];
+                    moduleAssignments.forEach((assignment: any) => {
+                      moduleItems.push({
+                        title: `واجب: ${assignment.title}`,
+                        url: assignment.file_url || '#',
+                        icon: <FileText className="w-5 h-5 text-burgundy-500" />,
+                        isExam: true,
+                        examData: { ...assignment, type: 'homework' },
+                      });
+                    });
+
+                    return {
+                      title: m.title,
+                      subtitle: m.subtitle,
+                      icon: <LayoutGrid className="w-6 h-6 text-burgundy-500" />,
+                      iconOpen: <LayoutGrid className="w-6 h-6 text-white" />,
+                      content: m.content,
+                      items: moduleItems,
+                    };
+                  });
+
+                // Subject Schedules
+                const subjectSchedules =
+                  schedulesData?.filter((sch: any) => sch.subject_id === s.id) || [];
+                if (subjectSchedules.length > 0) {
+                  subjectModules.push({
+                    title: 'الجداول ومواعيد الحصص',
+                    subtitle: 'جداول المحاضرات والمراجعات',
+                    icon: <Calendar className="w-6 h-6 text-burgundy-500" />,
+                    iconOpen: <Calendar className="w-6 h-6 text-white" />,
+                    content: 'تعرف على مواعيد الحصص والجداول المتاحة.',
+                    items: subjectSchedules.map((sch: any) => ({
+                      title: sch.title,
+                      url: sch.file_url || '#',
+                      icon: <FileText className="w-5 h-5 text-red-500" />,
+                      isExam: false,
+                    })),
+                  });
+                }
+
+                return {
+                  id: s.id,
+                  name: s.name,
+                  icon: iconMap[s.icon_name || 'FileText'] || iconMap.FileText,
+                  modules: subjectModules,
+                };
+              });
+              setDbSubjects(mapped);
+            }
+          }
+          setIsLoadingContent(false);
+        } catch (err) {
+          
+          setIsLoadingContent(false);
+        }
+      } else {
+        setIsLoadingContent(false);
+      }
+    }
+    fetchContent();
+  }, [course, isSubscribed]);
+
+  useEffect(() => {

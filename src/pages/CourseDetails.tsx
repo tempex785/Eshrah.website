@@ -175,19 +175,49 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
         !import.meta.env.VITE_SUPABASE_URL.includes('placeholder')
       ) {
         try {
-          // Fetch user session first to get attempts
-          const {
-            data: { session },
-          } = await supabase.auth.getSession();
-          if (session?.user?.id) {
-            const { data: attemptsData, error: attemptsError } = await supabase
-              .from('exam_attempts')
-              .select('*')
-              .eq('user_id', session.user.id);
+          const { data: { session } } = await supabase.auth.getSession();
+          const userId = session?.user?.id;
 
-            if (!attemptsError && attemptsData) {
+          const fetchAttempts = userId
+            ? supabase.from('exam_attempts').select('*').eq('user_id', userId)
+            : Promise.resolve({ data: null, error: null });
+
+          const fetchViews = userId
+            ? supabase.from('video_views').select('video_id').eq('student_id', userId)
+            : Promise.resolve({ data: null, error: null });
+
+          const fetchSubjects = supabase.from('course_subjects').select('*').eq('course_id', course.id);
+          const fetchExams = supabase.from('exams').select('*').eq('course_id', course.id);
+          const fetchAssignments = supabase.from('assignments').select('*').eq('course_id', course.id);
+          const fetchSchedules = supabase.from('schedules').select('*').eq('course_id', course.id).eq('is_active', true);
+          const fetchWeekly = supabase.from('weekly_schedules').select('*').eq('course_id', course.id).order('day_of_week', { ascending: true });
+          
+          const fetchModulesRPC = supabase.rpc('get_secure_course_modules', { p_course_id: course.id }).catch(() => ({ data: null, error: true }));
+
+          const [
+            attemptsRes,
+            viewsRes,
+            subsRes,
+            examsRes,
+            assignmentsRes,
+            schedulesRes,
+            weeklyRes,
+            modulesRpcRes
+          ] = await Promise.all([
+            fetchAttempts,
+            fetchViews,
+            fetchSubjects,
+            fetchExams,
+            fetchAssignments,
+            fetchSchedules,
+            fetchWeekly,
+            fetchModulesRPC
+          ]);
+
+          if (userId) {
+            if (!attemptsRes.error && attemptsRes.data) {
               const attemptsMap: Record<string, number> = {};
-              attemptsData.forEach((attempt) => {
+              attemptsRes.data.forEach((attempt: any) => {
                 const id = attempt.exam_id || attempt.assignment_id;
                 if (id) {
                   attemptsMap[id] = (attemptsMap[id] || 0) + 1;
@@ -195,91 +225,38 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
               });
               setUserAttempts(attemptsMap);
             }
-
-            const { data: viewsData, error: viewsError } = await supabase
-              .from('video_views')
-              .select('video_id')
-              .eq('student_id', session.user.id);
-            if (!viewsError && viewsData) {
-              setViewedVideoUrls(new Set(viewsData.map((v) => v.video_id)));
+            if (!viewsRes.error && viewsRes.data) {
+              setViewedVideoUrls(new Set(viewsRes.data.map((v: any) => v.video_id)));
             }
           }
 
-          const { data: subsData, error: subsError } = await supabase
-            .from('course_subjects')
-            .select('*')
-            .eq('course_id', course.id);
+          if (weeklyRes.data) {
+            setWeeklySchedules(weeklyRes.data);
+          } else {
+            setWeeklySchedules([]);
+          }
+
+          const subsData = subsRes.data;
+          const subsError = subsRes.error;
 
           if (!subsError && subsData && subsData.length > 0) {
-            // Get IDs
             const subjectIds = subsData.map((s: any) => s.id);
 
-            // Try fetching secure modules via RPC first (strips URLs if not subscribed)
-            let modsData = null;
-            let modsError = null;
-            try {
-              const { data: rpcData, error: rpcError } = await supabase.rpc(
-                'get_secure_course_modules',
-                {
-                  p_course_id: course.id,
-                }
-              );
-              if (!rpcError && rpcData) {
-                modsData = rpcData;
-              } else {
-                // Fallback to direct table if RPC doesn't exist
-                const res = await supabase
-                  .from('course_modules')
-                  .select('*')
-                  .in('subject_id', subjectIds);
-                modsData = res.data;
-                modsError = res.error;
+            let modsData = modulesRpcRes.data;
+            let modsError = modulesRpcRes.error;
 
-                // Remove the client-side stripping here to avoid race condition.
-                // We'll handle URL access based on the 'isSubscribed' state during render instead.
-              }
-            } catch (e) {
-              // Fallback
-              const res = await supabase
-                .from('course_modules')
-                .select('*')
-                .in('subject_id', subjectIds);
+            if (modsError || !modsData) {
+              const res = await supabase.from('course_modules').select('*').in('subject_id', subjectIds);
               modsData = res.data;
               modsError = res.error;
             }
 
-            // Fetch exams, assignments, and schedules
-            const { data: examsData } = await supabase
-              .from('exams')
-              .select('*')
-              .eq('course_id', course.id);
-
-            const { data: assignmentsData } = await supabase
-              .from('assignments')
-              .select('*')
-              .eq('course_id', course.id);
-
-            const { data: schedulesData } = await supabase
-              .from('schedules')
-              .select('*')
-              .eq('course_id', course.id)
-              .eq('is_active', true);
-
-            const { data: weeklyData } = await supabase
-              .from('weekly_schedules')
-              .select('*')
-              .eq('course_id', course.id)
-              .order('day_of_week', { ascending: true });
-
-            if (weeklyData) {
-              setWeeklySchedules(weeklyData);
-            } else {
-              setWeeklySchedules([]);
-            }
+            const examsData = examsRes.data;
+            const assignmentsData = assignmentsRes.data;
+            const schedulesData = schedulesRes.data;
 
             if (!modsError && modsData) {
               const mapped = subsData.map((s: any) => {
-                // Regular modules
                 const subjectModules = modsData
                   .filter((m: any) => m.subject_id === s.id)
                   .map((m: any) => {
@@ -306,7 +283,6 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
                         }))
                       : [];
 
-                    // Find exams for this module
                     const moduleExams = examsData?.filter((e: any) => e.module_id === m.id) || [];
                     moduleExams.forEach((exam: any) => {
                       moduleItems.push({
@@ -318,7 +294,6 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
                       });
                     });
 
-                    // Find assignments for this module
                     const moduleAssignments =
                       assignmentsData?.filter((a: any) => a.module_id === m.id) || [];
                     moduleAssignments.forEach((assignment: any) => {
@@ -341,9 +316,7 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
                     };
                   });
 
-                // Subject Schedules
-                const subjectSchedules =
-                  schedulesData?.filter((sch: any) => sch.subject_id === s.id) || [];
+                const subjectSchedules = schedulesData?.filter((sch: any) => sch.subject_id === s.id) || [];
                 if (subjectSchedules.length > 0) {
                   subjectModules.push({
                     title: 'الجداول ومواعيد الحصص',
@@ -367,12 +340,12 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
                   modules: subjectModules,
                 };
               });
+
               setDbSubjects(mapped);
             }
           }
           setIsLoadingContent(false);
         } catch (err) {
-          
           setIsLoadingContent(false);
         }
       } else {

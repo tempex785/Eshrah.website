@@ -92,8 +92,29 @@ export default function Register({
             .from('semesters')
             .select('*')
             .order('created_at', { ascending: true });
-          if (data && data.length > 0) {
-            const fetchedSemesters = data.map((d) => d.name);
+                    if (data && data.length > 0) {
+            const fetchedSemesters = data.map((d) => d.name).sort((a, b) => {
+              const weights: Record<string, number> = {
+                'الأولى': 1, '1': 1, 'الاولى': 1, 'أولى': 1, 'اولى': 1,
+                'الثانية': 2, '2': 2, 'ثانية': 2,
+                'الثالثة': 3, '3': 3, 'ثالثة': 3,
+                'الرابعة': 4, '4': 4, 'رابعة': 4,
+                'الخامسة': 5, '5': 5, 'خامسة': 5,
+                'السادسة': 6, '6': 6, 'سادسة': 6,
+                'السابعة': 7, '7': 7, 'سابعة': 7,
+              };
+              
+              let weightA = 99;
+              let weightB = 99;
+              
+              for (const [key, val] of Object.entries(weights)) {
+                if (a.includes(key)) weightA = Math.min(weightA, val);
+                if (b.includes(key)) weightB = Math.min(weightB, val);
+              }
+              
+              if (weightA !== weightB) return weightA - weightB;
+              return a.localeCompare(b, 'ar');
+            });
             setSemestersList(fetchedSemesters);
             setSemester(fetchedSemesters[0]);
           }
@@ -316,42 +337,23 @@ export default function Register({
           />
 
 
-          <div className="relative group">
-            <input
-              type="text"
-              name="governorate"
-              value={formData.governorate}
-              onChange={handleChange}
-              required
-              list="governorates-list"
-              placeholder={t('governorate')}
-              className="w-full bg-transparent border-b border-gray-300 dark:border-slate-700 py-3 pr-4 pl-4 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-burgundy-500 dark:focus:border-burgundy-400 outline-none transition-colors"
-            />
-            <datalist id="governorates-list">
-              {governorates.map((gov) => (
-                <option key={gov} value={gov} />
-              ))}
-            </datalist>
-          </div>
+          <CustomSelect
+            name="governorate"
+            value={formData.governorate}
+            onChange={handleChange}
+            required={true}
+            placeholder={t('governorate')}
+            options={governorates.map(g => ({ value: g, label: g }))}
+          />
 
-          <div className="relative group">
-            <MapPin className="absolute right-0 top-3 w-5 h-5 text-burgundy-500 group-focus-within:text-burgundy-400 transition-colors" />
-            <input
-              type="text"
-              name="collegeName"
-              value={formData.collegeName}
-              onChange={handleChange}
-              required
-              list="universities-list"
-              placeholder={t('collegeName')}
-              className="w-full bg-transparent border-b border-gray-300 dark:border-slate-700 py-3 pr-8 pl-4 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-burgundy-500 dark:focus:border-burgundy-400 outline-none transition-colors"
-            />
-            <datalist id="universities-list">
-              {universities.map((uni) => (
-                <option key={uni} value={uni} />
-              ))}
-            </datalist>
-          </div>
+          <CustomSelect
+            name="collegeName"
+            value={formData.collegeName}
+            onChange={handleChange}
+            required={true}
+            placeholder={t('collegeName')}
+            options={universities.map(u => ({ value: u, label: u }))}
+          />
 
           <div className="space-y-3 pt-2">
             <label className="text-slate-700 dark:text-slate-300 font-medium text-sm">
