@@ -326,12 +326,10 @@ export default function Profile({ onNavigate }: ProfileProps) {
   useEffect(() => {
     async function fetchTop() {
       try {
-        const { data, error } = await supabase
-          .from('top_students')
-          .select('*')
-          .order('rank', { ascending: true });
-        if (!error && data) {
-          setTopStudents(data);
+        const response = await fetch('/api/get-leaderboard');
+        const data = await response.json();
+        if (data && data.success && data.leaderboard) {
+          setTopStudents(data.leaderboard);
         }
       } catch (err) {}
     }
@@ -1077,7 +1075,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
                         </span>
                       </div>
                       <div className="flex items-center gap-1 text-amber-500 font-bold bg-amber-50 dark:bg-amber-500/10 px-3 py-1 rounded-full text-sm">
-                        {student.points || 1000 - student.rank * 10} نقطة
+                        {student.points} نقطة
                       </div>
                     </div>
                   ))}

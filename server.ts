@@ -7,6 +7,7 @@ import joinCourseHandler from './api/join-course';
 import getAnswersHandler from './api/get-answers';
 import chargeWalletHandler from './api/charge-wallet';
 import submitExamHandler from './api/submit-exam';
+import getLeaderboardHandler from './api/get-leaderboard';
 
 const app = express();
 const PORT = 3000;
@@ -17,6 +18,7 @@ app.post('/api/join-course', (req, res) => joinCourseHandler(req, res));
 app.post('/api/get-answers', (req, res) => getAnswersHandler(req, res));
 app.post('/api/charge-wallet', (req, res) => chargeWalletHandler(req, res));
 app.post('/api/submit-exam', (req, res) => submitExamHandler(req, res));
+app.get('/api/get-leaderboard', (req, res) => getLeaderboardHandler(req, res));
 
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
