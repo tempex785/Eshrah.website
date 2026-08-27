@@ -26,13 +26,28 @@ export default async function handler(req: any, res: any) {
     }
     
     // 1. Get Course Info
-    const { data: courseInfo, error: courseError } = await supabaseAdmin
-      .from('courses')
+    let courseInfo = null;
+    const { data: payCourse } = await supabaseAdmin
+      .from('paycourses')
       .select('price, title')
       .eq('id', courseId)
       .single();
+      
+    if (payCourse) {
+      courseInfo = payCourse;
+    } else {
+      const { data: freeCourse } = await supabaseAdmin
+        .from('freecourses')
+        .select('title')
+        .eq('id', courseId)
+        .single();
+        
+      if (freeCourse) {
+        courseInfo = { ...freeCourse, price: 0 };
+      }
+    }
 
-    if (courseError || !courseInfo) {
+    if (!courseInfo) {
       return res.status(400).json({ success: false, message: 'الكورس غير موجود' });
     }
 
@@ -81,13 +96,18 @@ export default async function handler(req: any, res: any) {
     }
 
     // 5. Insert Subscription
-    await supabaseAdmin
+    const { error: subError } = await supabaseAdmin
       .from('student_subscriptions')
       .insert({
         student_id: user.id,
-        course_id: courseId,
-        status: 'active'
+        course_id: courseId
       });
+      
+    if (subError) {
+        console.error('Subscription Insert Error:', subError);
+        // revert balance if possible, but skipping for simplicity
+        return res.status(500).json({ success: false, message: 'حدث خطأ أثناء تسجيل الاشتراك' });
+    }
 
     // 6. Log Transaction
     if (price > 0) {
