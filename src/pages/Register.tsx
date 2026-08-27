@@ -9,9 +9,11 @@ import toast from 'react-hot-toast';
 import { governorates, universities } from '../data/egypt';
 
 
-const CustomSelect = ({ name, value, onChange, options, placeholder, required }: any) => {
+const CustomSelect = ({ name, value, onChange, options, placeholder, required, searchable }: any) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -23,7 +25,20 @@ const CustomSelect = ({ name, value, onChange, options, placeholder, required }:
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (isOpen && searchable && inputRef.current) {
+      inputRef.current.focus();
+    }
+    if (!isOpen) {
+      setSearchTerm('');
+    }
+  }, [isOpen, searchable]);
+
   const selectedLabel = options.find((o: any) => o.value === value)?.label || placeholder;
+
+  const filteredOptions = searchable 
+    ? options.filter((o: any) => o.label.toLowerCase().includes(searchTerm.toLowerCase()))
+    : options;
 
   return (
     <div className="relative" ref={containerRef}>
@@ -36,22 +51,42 @@ const CustomSelect = ({ name, value, onChange, options, placeholder, required }:
         </span>
         <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </div>
+      
       {isOpen && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 overflow-hidden">
-          {options.map((opt: any) => (
-            <div
-              key={opt.value}
-              onClick={() => {
-                onChange({ target: { name, value: opt.value } });
-                setIsOpen(false);
-              }}
-              className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-slate-800 dark:text-slate-200"
-            >
-              {opt.label}
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 overflow-hidden flex flex-col max-h-60">
+          {searchable && (
+            <div className="p-2 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800">
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder="بحث..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-burgundy-500"
+              />
             </div>
-          ))}
+          )}
+          <div className="overflow-y-auto">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((opt: any) => (
+                <div
+                  key={opt.value}
+                  onClick={() => {
+                    onChange({ target: { name, value: opt.value } });
+                    setIsOpen(false);
+                  }}
+                  className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-slate-800 dark:text-slate-200"
+                >
+                  {opt.label}
+                </div>
+              ))
+            ) : (
+              <div className="px-4 py-2 text-slate-500 text-center">لا توجد نتائج</div>
+            )}
+          </div>
         </div>
       )}
+
       <select name={name} value={value} onChange={onChange} required={required} className="hidden" tabIndex={-1}>
         <option value="" disabled>{placeholder}</option>
         {options.map((opt: any) => (
@@ -342,6 +377,7 @@ export default function Register({
             value={formData.governorate}
             onChange={handleChange}
             required={true}
+            searchable={true}
             placeholder={t('governorate')}
             options={governorates.map(g => ({ value: g, label: g }))}
           />
@@ -351,6 +387,7 @@ export default function Register({
             value={formData.collegeName}
             onChange={handleChange}
             required={true}
+            searchable={true}
             placeholder={t('collegeName')}
             options={universities.map(u => ({ value: u, label: u }))}
           />
@@ -402,9 +439,15 @@ export default function Register({
             required={true}
             placeholder={t('howDidYouKnowGhaith')}
             options={[
-              { value: 'fb', label: t('facebook') },
-              { value: 'friend', label: t('friends') },
-              { value: 'other', label: t('other') }
+              { value: 'fb', label: 'فيسبوك' },
+              { value: 'instagram', label: 'انستجرام' },
+              { value: 'tiktok', label: 'تيك توك' },
+              { value: 'youtube', label: 'يوتيوب' },
+              { value: 'telegram', label: 'تيليجرام' },
+              { value: 'whatsapp', label: 'واتساب' },
+              { value: 'delegate', label: 'مندوب أو ممثل' },
+              { value: 'friend', label: 'من صديق' },
+              { value: 'other', label: 'أخرى' }
             ]}
           />
 
